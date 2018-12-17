@@ -5,6 +5,12 @@ from datetime import datetime
 from sqlalchemy import DateTime
 from sqlalchemy import PrimaryKeyConstraint, UniqueConstraint, CheckConstraint
 from sqlalchemy import Index
+from sqlalchemy.sql import select
+from sqlalchemy import desc
+from sqlalchemy.sql import func
+from sqlalchemy import cast
+from sqlalchemy import update
+from sqlalchemy import insert
 
 metadata=MetaData()
 engine=create_engine('mysql+pymysql://sqltest:Katze7436!@localhost:3306/sqltest')
@@ -52,22 +58,26 @@ Index('ix_cookies_cookie_name', 'cookie_name')
 
 metadata.create_all(engine)
 
-inventory_list = [
-{
-'cookie_name': 'peanut butter',
-'cookie_recipe_url': 'http://some.aweso.me/cookie/peanut.html',
-'cookie_sku': 'PB01',
-'quantity': '24',
-'unit_cost': '0.25'
-},
-{
-'cookie_name': 'oatmeal raisin',
-'cookie_recipe_url': 'http://some.okay.me/cookie/raisin.html',
-'cookie_sku': 'EWW01',
-'quantity': '100',
-'unit_cost': '1.00'
-}
-]
-ins = cookies.insert()
-result = connection.execute(ins, inventory_list)
+
+
+
+columns = [orders.c.order_id, users.c.username, users.c.phone,
+cookies.c.cookie_name, line_items.c.quantity,
+line_items.c.extended_cost]
+cookiemon_orders = select(columns)
+cookiemon_orders = cookiemon_orders.select_from(orders.join(users).join(
+line_items).join(cookies)).where(users.c.username ==
+'cookiemon')
+result = connection.execute(cookiemon_orders).fetchall()
+for row in result:
+    print(row)
+
+
+columns = [users.c.username, func.count(orders.c.order_id)]
+all_orders = select(columns)
+all_orders = all_orders.select_from(users.outerjoin(orders))
+all_orders = all_orders.group_by(users.c.username)
+result = connection.execute(all_orders).fetchall()
+for row in result:
+    print(row)
 
